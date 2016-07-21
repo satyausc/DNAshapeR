@@ -50,35 +50,124 @@
 #' pred <- getShape(fn)
 #' @export getShape
 
-getShape <- function(filename, shapeType = 'All', parse = TRUE) {
+getShape <- function(filename, shapeType = 'All',
+                     parse = TRUE, methylate = TRUE, methylated_CpG_pos_file = "" ) {
 
-    opts <- c( 'MGW', 'HelT', 'ProT', 'Roll' )
-    stopifnot( shapeType %in% c( opts, 'All' ) )
-
-    if( shapeType != 'All' ) {
-        getDNAShape(filename, 'MGW')
-
-    } else {
-        getDNAShape(filename, 'MGW')
-        getDNAShape(filename, 'HelT')
-        getDNAShape(filename, 'ProT')
-        getDNAShape(filename, 'Roll')
-    }
-
-    if( parse ) {
-        message( 'Parsing files......' )
-        if( shapeType == 'All' ) {
-            ln <- paste0( filename, '.', opts )
-            shapeList <- lapply( ln, readShape )
-            names( shapeList ) <- opts
+    if (methylate!=TRUE ) { 
+        opts <- c( 'MGW', 'HelT', 'ProT', 'Roll' )
+        stopifnot( shapeType %in% c( opts, 'All' ) )
+        
+        if( shapeType != 'All' ) {
+            getDNAShape(filename, 'MGW')
+            
         } else {
-            ln <- paste0( filename, '.', shapeType )
-            shapeList <- list( readShape( ln ) )
-            names( shapeList ) <- shapeType
+            getDNAShape(filename, 'MGW')
+            getDNAShape(filename, 'HelT')
+            getDNAShape(filename, 'ProT')
+            getDNAShape(filename, 'Roll')
         }
-        message( 'Done' )
-        return( shapeList )
+        
+        if( parse ) {
+            message( 'Parsing files......' )
+            if( shapeType == 'All' ) {
+                ln <- paste0( filename, '.', opts )
+                shapeList <- lapply( ln, readShape )
+                names( shapeList ) <- opts
+            } else {
+                ln <- paste0( filename, '.', shapeType )
+                shapeList <- list( readShape( ln ) )
+                names( shapeList ) <- shapeType
+            }
+            message( 'Done' )
+            return( shapeList )
+        }
+    } else if (methylated_CpG_pos_file == "" ){
+        cat ("INFO: Methylating all the CpG steps,
+             because the methylated_CpG_pos_file variable is not set\n")
+        cat ("INFO: In order to methylate only certain positions,please 
+             prepare a position file in fasta format and pass it as an
+             agrument\n")
+        fname_without_extension = tools::file_path_sans_ext(filename, compression = FALSE)
+        extension = tools::file_ext(filename)
+        out_filename = paste0(fname_without_extension, "_methylated", ".", extension)  
+        CpGtoMpg (filename,
+                  methylated_CpG_pos_file = "",
+                  out_filename = out_filename )
+        
+        opts <- c( 'MGW', 'HelT', 'ProT', 'Roll' )
+        stopifnot( shapeType %in% c( opts, 'All' ) )
+        v = predictMethylatedDNAshape(out_filename)
+        if( parse ) {
+            message( 'Parsing files......' )
+            if( shapeType == 'All' ) {
+                file_ext <- c( 'meth.MGW',  'unmeth.MGW',  'Delta.MGW', 
+                           'meth.HelT', 'unmeth.HelT', 'Delta.HelT',
+                           'meth.ProT', 'unmeth.ProT', 'Delta.ProT',
+                           'meth.Roll', 'unmeth.Roll', 'Delta.Roll')
+                name_ext <- c ('')
+                ln <- paste0( out_filename, '_', file_ext )
+                shapeList <- lapply( ln, readShape )
+                names( shapeList ) <- file_ext
+                message( 'Done' )
+                return( shapeList )
+            } else {
+                file_ext_shape = c ( paste0("meth.", shapeType),
+                                     paste0("unmeth.", shapeType),
+                                     paste0("Delta.", shapeType))
+                ln <- paste0( out_filename, '_', file_ext_shape)
+                shapeList <- lapply(ln, readShape )
+                names( shapeList ) <- file_ext_shape
+                message( 'Done' )
+                return( shapeList )
+            }
+        }
+    } else {
+        cat ("INFO: Methylating CpG positions specified in the pos file: ",
+             methylated_CpG_pos_file, "\n")
+        fname_without_extension = file_path_sans_ext(filename, compression = FALSE)
+        extension = file_ext(filename)
+        out_filename = paste0(fname_without_extension, "_methylated", ".", extension)  
+        msg = CpGtoMpg(filename = filename,
+                       methylated_CpG_pos_file = methylated_CpG_pos_file,
+                       out_filename = out_filename)
+        
+        opts <- c( 'MGW', 'HelT', 'ProT', 'Roll' )
+        stopifnot( shapeType %in% c( opts, 'All' ) )
+        v = predictMethylatedDNAshape(out_filename)
+        cat (msg, "\n")
+        if( parse ) {
+            message( 'Parsing files......' )
+            if( shapeType == 'All' ) {
+                file_ext_shape <- c( 'meth.MGW',  'unmeth.MGW',  'Delta.MGW', 
+                               'meth.HelT', 'unmeth.HelT', 'Delta.HelT',
+                               'meth.ProT', 'unmeth.ProT', 'Delta.ProT',
+                               'meth.Roll', 'unmeth.Roll', 'Delta.Roll')
+                ln <- paste0( out_filename, '_', file_ext_shape )
+                print (ln)
+                print ("\n")
+                shapeList <- lapply( ln, readShape )
+                names( shapeList ) <- file_ext_shape
+                message( 'Done' )
+                return( shapeList )
+            } else {
+                file_ext_shape = c ( paste0("meth.", shapeType),
+                                     paste0("unmeth.", shapeType),
+                                     paste0("Delta.", shapeType))
+
+                ln <- paste0( out_filename, '_', file_ext_shape)
+                print (ln)
+                print ("\n")
+                shapeList <- lapply( ln, readShape )
+                names( shapeList ) <- file_ext_shape
+                message( 'Done' )
+                return( shapeList )
+            }
+
+        }
+        
+        
     }
+    
 }
 
 #' Read (parse) DNA shape predictions
@@ -91,7 +180,7 @@ getShape <- function(filename, shapeType = 'All', parse = TRUE) {
 #' full path to file if it is located outside the current working directory.
 #'
 #' @return shapeMatrix matrix containing the shape prediction result
-#'
+#'  
 #' @author Federico Comoglio & Tsu-Pei Chiu
 #'
 #' @keywords core

@@ -15,11 +15,14 @@ biocViews: StructuralPrediction, DNA3DStructure, Software
 LazyData: TRUE
 Depends:
     R (>= 3.3),
-    GenomicRanges
+    GenomicRanges,
+    rPython,
+    tools
 Imports:
     Rcpp (>= 0.12.1),
     Biostrings,
-    fields
+    fields,
+    rPython
 LinkingTo: Rcpp
 NeedsCompilation: yes
 Packaged: 2016-4-25 6:45:44 UTC; tsupeich
