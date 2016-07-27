@@ -68,7 +68,7 @@ plotShape <- function( shapeMatrix, background = NULL,
         axis( 1, at = c( 0, span, m ),
           labels = c( -span, 'Center', paste0( '+', span ) ) )
           abline( v = span, lty = 2, col = 'gray30' )
-          lines( lowess( mu, f = 1/10 ), col = colLine, lwd = lwd )
+          lines( lowess( mu, f = 1/30 ), col = colLine, lwd = lwd )
     }
 
     else { #shape of random sample is provided
